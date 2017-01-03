@@ -1,4 +1,4 @@
-package com.ruanko.toolkit.pdf.table;
+package com.ruanko.toolkit.pdf;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -9,19 +9,18 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ruanko.toolkit.pdf.PDF2PNG;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
-import javafx.scene.control.CheckBox;
-
-public class PdfList {
+public class PdfList extends LinkedList<PdfFile> {
+	private static final long serialVersionUID = 1L;
 	private static Logger logger = LoggerFactory.getLogger(PdfList.class);
 
-	private LinkedList<PdfFile> pdfFiles;
+	private final ObservableList<PdfFile> data = FXCollections.observableArrayList();
 	
-	public PdfList() {
-		pdfFiles = new LinkedList<PdfFile>();
+	public ObservableList<PdfFile> getData() {
+		return data;
 	}
-	
 	
 	/**
 	 * 检查是否已经添加过此文件。
@@ -29,9 +28,9 @@ public class PdfList {
 	 * @return
 	 */
 	public boolean contains(File file) {
-		int row = pdfFiles.size();
+		int row = size();
 		for(int i=0; i<row; i++) {
-			if (pdfFiles.get(i).getFile().equals(file)) {
+			if (get(i).getFile().equals(file)) {
 				return true;
 			}
 		}
@@ -130,7 +129,8 @@ public class PdfList {
 					
 					// 添加PDF文件
 					PdfFile pdfFile = new PdfFile(file);
-					pdfFiles.add(pdfFile);
+					this.add(pdfFile);
+					data.add(pdfFile);
 					
 					logger.debug("Add new file: {}", file.getName());
 					
@@ -148,10 +148,10 @@ public class PdfList {
 	 * @return
 	 */
 	public PdfFile get(File file) {
-		int row = pdfFiles.size();
+		int row = size();
 		for(int i=0; i<row; i++) {
-			if (pdfFiles.get(i).getFile().equals(file)) {
-				return pdfFiles.get(i);
+			if (get(i).getFile().equals(file)) {
+				return get(i);
 			}
 		}
 		
@@ -163,10 +163,9 @@ public class PdfList {
 	 * @return
 	 */
 	public boolean allSelected() {
-		int row = pdfFiles.size();
+		int row = size();
 		for(int i=0; i<row; i++) {
-			CheckBox cb = pdfFiles.get(i).getSelect();
-			if (!cb.isSelected()) {
+			if (!get(i).getSelect()) {
 				return false;
 			}
 		}
@@ -179,24 +178,10 @@ public class PdfList {
 	 * @param select
 	 */
 	public synchronized void selectedAll(boolean select) {
-		int row = pdfFiles.size();
+		int row = size();
 		for(int i=0; i<row; i++) {
-			CheckBox cb = pdfFiles.get(i).getSelect();
-			if (select != cb.isSelected()) {
-				cb.setSelected(select);
-			}
-		}
-	}
-
-	/**
-	 * 导出全部被选中的文件为png
-	 */
-	public synchronized void exportAll() {
-		int row = pdfFiles.size();
-		for(int i=0; i<row; i++) {
-			PdfFile pdfFile = pdfFiles.get(i);
-			if (pdfFile.getSelect().isSelected() && !pdfFile.isBusy()) {
-				PDF2PNG.convertPdfToPng(pdfFile.getPath());
+			if (select != get(i).getSelect()) {
+				get(i).setSelect(select);
 			}
 		}
 	}

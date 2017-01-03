@@ -7,15 +7,19 @@ package com.ruanko.toolkit.pdf;
  *
  */
 public class Settings {
-
+	final static String REGISTRY_KEY = "/com/ruanko/toolkit/pdf";
+	
+	final static Settings settings = new Settings();
+	
 	/**
 	 * 输出文件夹所处位置
+	 * 
 	 * @author yanmaoyuan
 	 *
 	 */
-	public enum OutputFolder {
+	public enum OutputModel {
 		/**
-		 * 输出到Pdf2Image程序的output文件夹中。
+		 * 输出到PdfToImage程序的output文件夹中。
 		 */
 		Local,
 		/**
@@ -27,13 +31,14 @@ public class Settings {
 		 */
 		Absolute;
 	}
-	
+
 	// 输出文件夹
-	private OutputFolder model = OutputFolder.Local;
+	private OutputModel model = OutputModel.Local;
 	private String output = "./output";
-	
+
 	/**
 	 * 分辨率
+	 * 
 	 * @author Administrator
 	 *
 	 */
@@ -49,25 +54,43 @@ public class Settings {
 	// 分辨率
 	private DPI resolution = DPI.hdpi;
 	private int dpi = 300;
-	
-	public Settings() {
-		
+
+	private Settings() {}
+	public static Settings get() {
+		return settings;
 	}
-	
+
 	public void setDpi(DPI dpi) {
 		this.resolution = dpi;
 	}
-	
+
 	public void setDpi(int dpi) {
 		this.resolution = DPI.custom;
 		this.dpi = dpi;
 	}
-	
+
 	public int getDpi() {
 		if (resolution != DPI.custom) {
 			return resolution.dpi;
 		} else {
 			return dpi;
 		}
+	}
+
+	public void setOuputModel(OutputModel model) {
+		this.model = model;
+	}
+
+	public void setOutput(String output) {
+		this.model = OutputModel.Absolute;
+		this.output = output;
+	}
+
+	public OutputModel getOutputModel() {
+		return model;
+	}
+
+	public String getOutput() {
+		return output;
 	}
 }

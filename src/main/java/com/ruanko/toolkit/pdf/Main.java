@@ -2,9 +2,6 @@ package com.ruanko.toolkit.pdf;
 
 import java.awt.Desktop;
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.URI;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -13,20 +10,14 @@ import java.util.prefs.Preferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ruanko.toolkit.pdf.table.PdfFile;
-import com.ruanko.toolkit.pdf.table.PdfList;
-
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
@@ -39,9 +30,10 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ToolBar;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.ProgressBarTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -72,17 +64,15 @@ public class Main extends Application {
 	private final static int HEIGHT = 600;
 
 	private Stage primaryStage;
-
 	private FileChooser chooser;
-	private TableView<PdfFile> tableView;
-	private PdfList pdfList;
-	private final ObservableList<PdfFile> data = FXCollections.observableArrayList();
 
-	private TextArea console;
-	
+	private PdfList pdfList;
+	private TableView<PdfFile> tableView;
+
+	// 状态栏
 	private Label status;
 	private ProgressBar progressBar;
-
+	
 	@Override
 	public void start(Stage stage) throws Exception {
 
@@ -109,9 +99,6 @@ public class Main extends Application {
 		// 文件列表
 		tableView = getTableView();
 
-		// 控制台
-		console = getTextArea();
-
 		// 状态栏
 		HBox box = getStatusBar();
 		
@@ -125,7 +112,6 @@ public class Main extends Application {
 		root.setBottom(box);
 		center.setTop(toolBar);
 		center.setCenter(tableView);
-		center.setBottom(console);
 
 		Scene scene = new Scene(root, WIDTH, HEIGHT);
 		stage.setScene(scene);
@@ -234,7 +220,7 @@ public class Main extends Application {
 			Platform.runLater(new Runnable() {
 				@Override
 				public void run() {
-					pdfList.exportAll();
+					exportAll();
 				}
 			});
 		});
@@ -262,7 +248,6 @@ public class Main extends Application {
 				logger.error("Error when open http://www.ruanko.com : {}", ex.getMessage(), ex);
 			}
         }); 
-		
 		
 		HBox box = new HBox();
 		box.setAlignment(Pos.CENTER_RIGHT);
@@ -328,16 +313,18 @@ public class Main extends Application {
 		btn.setOnAction(e -> addPdfFile());
 		
 		TableView<PdfFile> tableView = new TableView<PdfFile>();
-		tableView.setItems(data);
+		tableView.setItems(pdfList.getData());
 		tableView.setPlaceholder(btn);
 		tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 		
-		TableColumn<PdfFile, CheckBox> selectColumn = new TableColumn<>("选择");
+		TableColumn<PdfFile, Boolean> selectColumn = new TableColumn<>("选择");
 		selectColumn.setCellValueFactory(new PropertyValueFactory<>("select"));
+		selectColumn.setCellFactory(CheckBoxTableCell.forTableColumn(selectColumn));
 		selectColumn.setStyle("-fx-alignment:CENTER");
+		selectColumn.setEditable(true);
 		selectColumn.setPrefWidth(32);
 		selectColumn.setMinWidth(32);
-		selectColumn.setMaxWidth(32);
+		selectColumn.setMaxWidth(40);
 		
 		TableColumn<PdfFile, String> nameColumn = new TableColumn<>("文件名");
 		nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -358,25 +345,19 @@ public class Main extends Application {
 		pageCountColumn.setMaxWidth(60);
 		
 		TableColumn<PdfFile, String> stateColumn = new TableColumn<>("状态");
-		stateColumn.setCellValueFactory(new PropertyValueFactory<>("busy"));
+		stateColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
 		stateColumn.setStyle("-fx-alignment:CENTER");
 		stateColumn.setPrefWidth(80);
 		stateColumn.setMinWidth(80);
 		stateColumn.setMaxWidth(80);
 		
-		TableColumn<PdfFile, Button> openColumn = new TableColumn<>("打开");
-		openColumn.setCellValueFactory(new PropertyValueFactory<>("open"));
+		TableColumn<PdfFile, Double> openColumn = new TableColumn<>("进度");
+		openColumn.setCellValueFactory(new PropertyValueFactory<>("progress"));
+		openColumn.setCellFactory(ProgressBarTableCell.forTableColumn());
 		openColumn.setStyle("-fx-alignment:CENTER");
 		openColumn.setPrefWidth(80);
 		openColumn.setMinWidth(80);
 		openColumn.setMaxWidth(80);
-		
-		TableColumn<PdfFile, Button> exportColumn = new TableColumn<>("转换png");
-		exportColumn.setCellValueFactory(new PropertyValueFactory<>("export"));
-		exportColumn.setStyle("-fx-alignment:CENTER");
-		exportColumn.setPrefWidth(80);
-		exportColumn.setMinWidth(80);
-		exportColumn.setMaxWidth(80);
 		
 		tableView.getColumns().add(selectColumn);
 		tableView.getColumns().add(nameColumn);
@@ -384,7 +365,6 @@ public class Main extends Application {
 		tableView.getColumns().add(pageCountColumn);
 		tableView.getColumns().add(stateColumn);
 		tableView.getColumns().add(openColumn);
-		tableView.getColumns().add(exportColumn);
 		
 		// 支持拖拽
 		// 拖入文件
@@ -393,12 +373,7 @@ public class Main extends Application {
 				Dragboard dragboard = event.getDragboard(); 
 				if (dragboard.hasFiles()) {
 					event.acceptTransferModes(TransferMode.COPY_OR_MOVE);//接受拖入文件
-//					File file = dragboard.getFiles().get(0);
-//					if (file.getAbsolutePath().endsWith(".pdf")) { //用来过滤拖入类型
-//					}
-//					System.out.println("drag over:" + file);
 				}
-
 			}
 		});
 		// 释放文件
@@ -418,43 +393,6 @@ public class Main extends Application {
 		});
 		
 		return tableView;
-	}
-
-	private TextArea getTextArea() {
-		// 用自己的重载的OutputStream创建一个PrintStream
-		PrintStream printStream = new PrintStream(new MyOutputStream());
-		// 指定标准输出到自己创建的PrintStream
-		System.setOut(printStream);
-		System.setErr(printStream);
-
-		TextArea console = new TextArea();
-		console.setWrapText(true);
-		console.setEditable(false);
-		console.setStyle("-fx-font-size:14");
-
-		return console;
-	}
-
-	/**
-	 * 将数据输出到一个TextArea中。
-	 * 
-	 * @author yanmaoyuan
-	 *
-	 */
-	public class MyOutputStream extends OutputStream {
-		public void write(int arg0) throws IOException {
-			// 写入指定的字节，忽略
-		}
-
-		public void write(byte data[]) throws IOException {
-			// 追加一行字符串
-			console.appendText(new String(data));
-		}
-
-		public void write(byte data[], int off, int len) throws IOException {
-			// 追加一行字符串中指定的部分，这个最重要
-			console.appendText(new String(data, off, len));
-		}
 	}
 
 	/**
@@ -482,44 +420,93 @@ public class Main extends Application {
 	 */
 	private void startLoadingTask(List<File> files) {
 		
-		Task<Void> task = new Task<Void> () {
+		LoadingTask loading = new LoadingTask(files);
+		
+		status.textProperty().bind(loading.messageProperty());
+		
+		progressBar.progressProperty().bind(loading.progressProperty());
+		
+		new Thread(loading).start();
+	}
+	
+	/**
+	 * 导出全部被选中的文件为png
+	 */
+	public void exportAll() {
+		int row = pdfList.size();
+		for(int i=0; i<row; i++) {
+			PdfFile pdfFile = pdfList.get(i);
+			if (pdfFile.getSelect()) {
+				export(pdfFile);
+			}
+		}
+	}
+	
+	/**
+	 * 导出Pdf文件
+	 * @param pdfFile
+	 */
+	public void export(PdfFile pdfFile) {
+		ProcessTask task = new ProcessTask(pdfFile);
+
+		pdfFile.progressProperty().bind(task.progressProperty());
+		pdfFile.statusProperty().bind(task.messageProperty());
+
+		Thread thread = new Thread(task);
+		thread.setDaemon(true);
+		thread.start();
+	}
+	
+	/**
+	 * 加载PDF文件
+	 * @author yanmaoyuan
+	 * @param <V>
+	 */
+	public class LoadingTask extends Task<Void> {
+
+		List<File> files;
+		
+		public LoadingTask(List<File> files) {
+			this.files = files;
+		}
+		
+		@Override
+		protected void running() {
+			super.running();
+			progressBar.setVisible(true);
+		}
+
+		@Override
+		protected void succeeded() {
+			super.succeeded();
+			progressBar.setVisible(false);
+			progressBar.progressProperty().unbind();
+		}
+		
+		@Override
+		protected Void call() throws Exception {
+			updateProgress(0, 100);
+			updateMessage("加载中..");
 			
-			@Override
-			protected void running() {
-				super.running();
-				progressBar.setVisible(true);
-			}
-
-			@Override
-			protected void succeeded() {
-				super.succeeded();
-				progressBar.setVisible(false);
-				progressBar.progressProperty().unbind();
-			}
-
-			@Override
-			protected Void call() throws Exception {
-				updateMessage("加载中..");
+			// 过滤pdf文件
+			List<File> pdfs = pdfList.filter(files);
+			
+			int len = pdfs.size();
+			for(int i=0; i<len; i++) {
 				
-				List<File> pdfs = pdfList.filter(files);
-				
-				int len = pdfs.size();
-				for(int i=0; i<len; i++) {
-					File file = pdfs.get(i);
-					pdfList.add(file);
-					data.add(pdfList.get(file));
-					updateProgress(i+1, len);
-					updateMessage("加载中:" + (i+1) + "/" + len);
+				if (isCancelled()) {
+					updateMessage("Cancelled");
+					break;
 				}
-				updateMessage("就绪");
-				return null;
+				
+				File file = pdfs.get(i);
+				pdfList.add(file);
+				updateProgress(i+1, len);
+				updateMessage("加载中:" + (i+1) + "/" + len);
 			}
-		};
-		
-		status.textProperty().bind(task.messageProperty());
-		
-		progressBar.progressProperty().bind(task.progressProperty());
-		
-		new Thread(task).start();
+			updateMessage("就绪");
+			return null;
+		}
+
 	}
 }
