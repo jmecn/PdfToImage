@@ -19,10 +19,8 @@ import javafx.beans.property.StringProperty;
 public class PdfFile {
 	final static String[] unit = { "Byte", "KiB", "MiB", "GiB", "TiB" };
 
-	public enum State {
-		Ready, Waiting, Process, Done;
-	}
-
+	private State state = State.Ready;
+	
 	private SimpleBooleanProperty select;
 	private String name;
 	private String path;
@@ -90,6 +88,14 @@ public class PdfFile {
 
 	public String getFileSize() {
 		return fileSize;
+	}
+
+	public State getState() {
+		return state;
+	}
+
+	public void setState(State state) {
+		this.state = state;
 	}
 
 	public String getStatus() {

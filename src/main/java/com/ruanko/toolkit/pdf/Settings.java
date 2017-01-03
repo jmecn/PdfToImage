@@ -1,5 +1,7 @@
 package com.ruanko.toolkit.pdf;
 
+import java.util.prefs.Preferences;
+
 /**
  * 应用程序设置
  * 
@@ -8,56 +10,40 @@ package com.ruanko.toolkit.pdf;
  */
 public class Settings {
 	final static String REGISTRY_KEY = "/com/ruanko/toolkit/pdf";
-	
+
 	final static Settings settings = new Settings();
-	
+
 	/**
-	 * 输出文件夹所处位置
-	 * 
-	 * @author yanmaoyuan
-	 *
+	 * 上次打开窗口时选择的文件路径
 	 */
-	public enum OutputModel {
-		/**
-		 * 输出到PdfToImage程序的output文件夹中。
-		 */
-		Local,
-		/**
-		 * 输出到pdf文件所在文件夹中。
-		 */
-		Relative,
-		/**
-		 * 用户指定文件夹
-		 */
-		Absolute;
-	}
+	private String lastPath = "./";
 
 	// 输出文件夹
 	private OutputModel model = OutputModel.Local;
 	private String output = "./output";
 
-	/**
-	 * 分辨率
-	 * 
-	 * @author Administrator
-	 *
-	 */
-	public enum DPI {
-		ldpi(120), mdpi(160), hdpi(240), xdpi(320), xxdpi(480), custom(-1);
-		int dpi;
-
-		private DPI(int dpi) {
-			this.dpi = dpi;
-		}
-	}
-
 	// 分辨率
 	private DPI resolution = DPI.hdpi;
 	private int dpi = 300;
 
-	private Settings() {}
+	private Settings() {
+	}
+
 	public static Settings get() {
 		return settings;
+	}
+
+	public void setLastPath(String lastPath) {
+		// 记忆用户最后选择的文件路径。
+		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
+		pref.put("lastPath", lastPath);
+		this.lastPath = lastPath;
+	}
+	
+	public String getLastPath() {
+		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
+		lastPath = pref.get("lastPath", "./");
+		return lastPath;
 	}
 
 	public void setDpi(DPI dpi) {

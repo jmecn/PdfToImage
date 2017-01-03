@@ -5,7 +5,8 @@ import java.io.File;
 import java.net.URI;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.prefs.Preferences;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,10 +59,7 @@ public class Main extends Application {
 	// Resource bundle for i18n.
 	private static ResourceBundle resource = ResourceBundle.getBundle("com.ruanko.toolkit.pdf.UI");
 
-	private final static String REGISTRY_KEY = "/com/ruanko/toolkit/pdf";
-
-	private final static int WIDTH = 800;
-	private final static int HEIGHT = 600;
+	private ExecutorService executor = null;
 
 	private Stage primaryStage;
 	private FileChooser chooser;
@@ -72,7 +70,19 @@ public class Main extends Application {
 	// 状态栏
 	private Label status;
 	private ProgressBar progressBar;
-	
+
+	@Override
+	public void init() throws Exception {
+		executor = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
+
+	}
+
+	@Override
+	public void stop() throws Exception {
+		executor.shutdown();
+		executor = null;
+	}
+
 	@Override
 	public void start(Stage stage) throws Exception {
 
@@ -101,7 +111,7 @@ public class Main extends Application {
 
 		// 状态栏
 		HBox box = getStatusBar();
-		
+
 		// 表格菜单
 		getContextMenu();
 
@@ -113,7 +123,7 @@ public class Main extends Application {
 		center.setTop(toolBar);
 		center.setCenter(tableView);
 
-		Scene scene = new Scene(root, WIDTH, HEIGHT);
+		Scene scene = new Scene(root, 1024, 768);
 		stage.setScene(scene);
 
 		stage.setTitle(resource.getString("frame.title"));
@@ -161,10 +171,10 @@ public class Main extends Application {
 		RadioMenuItem relativeItem = new RadioMenuItem("文件所在目录");
 		RadioMenuItem absoluteItem = new RadioMenuItem("自定义目录");
 		localItem.setSelected(true);
-		
+
 		ToggleGroup outputGroup = new ToggleGroup();
 		outputGroup.getToggles().addAll(localItem, relativeItem, absoluteItem);
-		
+
 		outputMenu.getItems().addAll(localItem, relativeItem, absoluteItem);
 
 		// 分辨率选项
@@ -241,27 +251,26 @@ public class Main extends Application {
 		progressBar = new ProgressBar(0);
 		progressBar.setVisible(false);
 		Hyperlink hyperlink = new Hyperlink("http://www.ruanko.com");
-		hyperlink.setOnAction(e -> {  
-            try {
+		hyperlink.setOnAction(e -> {
+			try {
 				Desktop.getDesktop().browse(new URI("http://www.ruanko.com"));
 			} catch (Exception ex) {
 				logger.error("Error when open http://www.ruanko.com : {}", ex.getMessage(), ex);
 			}
-        }); 
-		
+		});
+
 		HBox box = new HBox();
 		box.setAlignment(Pos.CENTER_RIGHT);
-		box.setStyle(
-				"-fx-padding: 2px;"+
-				"-fx-font: 10pt \"sans-serif\";");
+		box.setStyle("-fx-padding: 2px;" + "-fx-font: 10pt \"sans-serif\";");
 		box.getChildren().add(progressBar);
 		box.getChildren().add(new Separator(Orientation.VERTICAL));
 		box.getChildren().add(status);
 		box.getChildren().add(new Separator(Orientation.VERTICAL));
 		box.getChildren().add(hyperlink);
-		
+
 		return box;
 	}
+
 	/**
 	 * 表格的上下文菜单
 	 * 
@@ -288,8 +297,7 @@ public class Main extends Application {
 		chooser.setTitle("Add PDF file");
 
 		// 初始化文件目录
-		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
-		String lastPath = pref.get("lastPath", ".");
+		String lastPath = Settings.get().getLastPath();
 		File folder = new File(lastPath);
 		if (folder.exists() && folder.isDirectory()) {
 			chooser.setInitialDirectory(folder);
@@ -311,46 +319,49 @@ public class Main extends Application {
 	private TableView<PdfFile> getTableView() {
 		Button btn = new Button("Add pdf files");
 		btn.setOnAction(e -> addPdfFile());
-		
+
 		TableView<PdfFile> tableView = new TableView<PdfFile>();
+		tableView.setEditable(true);
 		tableView.setItems(pdfList.getData());
 		tableView.setPlaceholder(btn);
 		tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-		
+
 		TableColumn<PdfFile, Boolean> selectColumn = new TableColumn<>("选择");
 		selectColumn.setCellValueFactory(new PropertyValueFactory<>("select"));
 		selectColumn.setCellFactory(CheckBoxTableCell.forTableColumn(selectColumn));
 		selectColumn.setStyle("-fx-alignment:CENTER");
 		selectColumn.setEditable(true);
+		selectColumn.setSortable(false);
 		selectColumn.setPrefWidth(32);
 		selectColumn.setMinWidth(32);
-		selectColumn.setMaxWidth(40);
-		
+		selectColumn.setMaxWidth(32);
+
 		TableColumn<PdfFile, String> nameColumn = new TableColumn<>("文件名");
 		nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
 		nameColumn.setPrefWidth(200);
 		nameColumn.setMinWidth(200);
-		
+
 		TableColumn<PdfFile, String> fileSizeColumn = new TableColumn<>("文件大小");
 		fileSizeColumn.setCellValueFactory(new PropertyValueFactory<>("fileSize"));
 		fileSizeColumn.setStyle("-fx-alignment:CENTER_RIGHT");
+		fileSizeColumn.setSortable(false);
 		fileSizeColumn.setPrefWidth(80);
 		fileSizeColumn.setMinWidth(80);
 		fileSizeColumn.setMaxWidth(80);
-		
+
 		TableColumn<PdfFile, Integer> pageCountColumn = new TableColumn<>("总页数");
 		pageCountColumn.setCellValueFactory(new PropertyValueFactory<>("pageCount"));
 		pageCountColumn.setStyle("-fx-alignment:CENTER_RIGHT");
 		pageCountColumn.setMinWidth(60);
 		pageCountColumn.setMaxWidth(60);
-		
+
 		TableColumn<PdfFile, String> stateColumn = new TableColumn<>("状态");
 		stateColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
 		stateColumn.setStyle("-fx-alignment:CENTER");
 		stateColumn.setPrefWidth(80);
 		stateColumn.setMinWidth(80);
 		stateColumn.setMaxWidth(80);
-		
+
 		TableColumn<PdfFile, Double> openColumn = new TableColumn<>("进度");
 		openColumn.setCellValueFactory(new PropertyValueFactory<>("progress"));
 		openColumn.setCellFactory(ProgressBarTableCell.forTableColumn());
@@ -358,21 +369,21 @@ public class Main extends Application {
 		openColumn.setPrefWidth(80);
 		openColumn.setMinWidth(80);
 		openColumn.setMaxWidth(80);
-		
+
 		tableView.getColumns().add(selectColumn);
 		tableView.getColumns().add(nameColumn);
 		tableView.getColumns().add(fileSizeColumn);
 		tableView.getColumns().add(pageCountColumn);
 		tableView.getColumns().add(stateColumn);
 		tableView.getColumns().add(openColumn);
-		
+
 		// 支持拖拽
 		// 拖入文件
-		tableView.setOnDragOver(new EventHandler<DragEvent>() { //node添加拖入文件事件
+		tableView.setOnDragOver(new EventHandler<DragEvent>() { // node添加拖入文件事件
 			public void handle(DragEvent event) {
-				Dragboard dragboard = event.getDragboard(); 
+				Dragboard dragboard = event.getDragboard();
 				if (dragboard.hasFiles()) {
-					event.acceptTransferModes(TransferMode.COPY_OR_MOVE);//接受拖入文件
+					event.acceptTransferModes(TransferMode.COPY_OR_MOVE);// 接受拖入文件
 				}
 			}
 		});
@@ -382,16 +393,16 @@ public class Main extends Application {
 			@Override
 			public void handle(DragEvent event) {
 				Dragboard dragboard = event.getDragboard();
-				
+
 				if (dragboard.hasFiles()) {
 					List<File> files = dragboard.getFiles();
-					
+
 					startLoadingTask(files);
 				}
 			}
 
 		});
-		
+
 		return tableView;
 	}
 
@@ -403,73 +414,78 @@ public class Main extends Application {
 		List<File> files = chooser.showOpenMultipleDialog(primaryStage);
 		if (files != null) {
 			// 记忆用户最后选择的文件路径。
-			Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
-			String lastPath = files.get(0).getParent();
-			pref.put("lastPath", lastPath);
+			Settings.get().setLastPath(files.get(0).getParent());
 
 			startLoadingTask(files);
-			
+
 		} else {
 			logger.info("No files were selected.");
 		}
 
 	}
-	
+
 	/**
 	 * 启动一个装载文件任务
 	 */
 	private void startLoadingTask(List<File> files) {
-		
+
 		LoadingTask loading = new LoadingTask(files);
-		
+
 		status.textProperty().bind(loading.messageProperty());
-		
+
 		progressBar.progressProperty().bind(loading.progressProperty());
-		
-		new Thread(loading).start();
+
+		executor.submit(loading);
 	}
-	
+
 	/**
 	 * 导出全部被选中的文件为png
 	 */
 	public void exportAll() {
 		int row = pdfList.size();
-		for(int i=0; i<row; i++) {
+		for (int i = 0; i < row; i++) {
 			PdfFile pdfFile = pdfList.get(i);
 			if (pdfFile.getSelect()) {
-				export(pdfFile);
+				process(pdfFile);
 			}
 		}
 	}
-	
+
 	/**
 	 * 导出Pdf文件
+	 * 
 	 * @param pdfFile
 	 */
-	public void export(PdfFile pdfFile) {
+	public void process(PdfFile pdfFile) {
+		if (pdfFile.getState() != State.Ready) {
+			return;
+		}
+
 		ProcessTask task = new ProcessTask(pdfFile);
 
+		pdfFile.setState(State.Waiting);
+		pdfFile.progressProperty().unbind();
 		pdfFile.progressProperty().bind(task.progressProperty());
+		pdfFile.statusProperty().unbind();
 		pdfFile.statusProperty().bind(task.messageProperty());
 
-		Thread thread = new Thread(task);
-		thread.setDaemon(true);
-		thread.start();
+		executor.submit(task);
 	}
-	
+
 	/**
 	 * 加载PDF文件
+	 * 
 	 * @author yanmaoyuan
 	 * @param <V>
 	 */
 	public class LoadingTask extends Task<Void> {
 
 		List<File> files;
-		
+
 		public LoadingTask(List<File> files) {
 			this.files = files;
 		}
-		
+
 		@Override
 		protected void running() {
 			super.running();
@@ -482,27 +498,27 @@ public class Main extends Application {
 			progressBar.setVisible(false);
 			progressBar.progressProperty().unbind();
 		}
-		
+
 		@Override
 		protected Void call() throws Exception {
 			updateProgress(0, 100);
 			updateMessage("加载中..");
-			
+
 			// 过滤pdf文件
 			List<File> pdfs = pdfList.filter(files);
-			
+
 			int len = pdfs.size();
-			for(int i=0; i<len; i++) {
-				
+			for (int i = 0; i < len; i++) {
+
 				if (isCancelled()) {
 					updateMessage("Cancelled");
 					break;
 				}
-				
+
 				File file = pdfs.get(i);
 				pdfList.add(file);
-				updateProgress(i+1, len);
-				updateMessage("加载中:" + (i+1) + "/" + len);
+				updateProgress(i + 1, len);
+				updateMessage("加载中:" + (i + 1) + "/" + len);
 			}
 			updateMessage("就绪");
 			return null;

@@ -15,7 +15,8 @@ import org.ghost4j.renderer.SimpleRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ruanko.toolkit.pdf.Settings.OutputModel;
+import static com.ruanko.toolkit.pdf.State.Process;
+import static com.ruanko.toolkit.pdf.State.Done;
 
 import javafx.concurrent.Task;
 
@@ -42,6 +43,7 @@ public class ProcessTask extends Task<Void> {
 	@Override
 	protected Void call() throws Exception {
 		try {
+			pdf.setState(Process);
 			updateMessage("Process..");
 			
 			logger.debug("Begin converting PDF: {} at {}", pdf.getName(), format.format(new Date()));
@@ -67,8 +69,13 @@ public class ProcessTask extends Task<Void> {
 			// render
 			for (int page = 0; page < pages; page++) {
 				
+				
+				if (isCancelled()) {
+					break;
+				}
 				updateProgress(page+1, pages);
 				updateMessage((page+1) + "/" + pages);
+				
 				
 				List<Image> images = renderer.render(document, page, page);
 
@@ -81,7 +88,7 @@ public class ProcessTask extends Task<Void> {
 			logger.debug("End PDF conversion at " + new Date());
 			
 			updateMessage("Done.");
-
+			pdf.setState(Done);
 		} catch (Exception e) {
 			logger.error("ERROR: {}", e.getMessage(), e);
 		}
