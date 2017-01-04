@@ -17,7 +17,9 @@ https://github.com/zippy1978/ghost4j/issues/21
 使用Ghost4J需要安装GhostScript，因为它通过JNA调用GhostScript的库文件。
 
 在Linux系统，依赖 libgs.so
+
 在windows 64位，依赖 win32-x86-64/gsdll64.dll
+
 在windows 32位，依赖 win32-x86-32/gsdll32.dll
 
 这些文件可以通过下载安装GhostScript后，在其文件夹中找到。
@@ -52,6 +54,7 @@ Ghost4j目前采用的itext 2.1.7，在解读加密pdf文件时，最高只能�
 ## Ghostscript
 
 主页：https://ghostscript.com/
+
 下载：https://ghostscript.com/download/gsdnld.html
 
 Ghostscript是一套建基于Adobe、PostScript及可移植文档格式（PDF）的页面描述语言等而编译成的免费软件。
