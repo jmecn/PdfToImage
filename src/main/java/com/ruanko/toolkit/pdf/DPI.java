@@ -7,7 +7,7 @@ package com.ruanko.toolkit.pdf;
  *
  */
 public enum DPI {
-	ldpi(120), mdpi(160), hdpi(240), xdpi(320), xxdpi(480), custom(-1);
+	ldpi(120), mdpi(160), hdpi(240), xhdpi(320), xxhdpi(480), custom(-1);
 	int dpi;
 
 	private DPI(int dpi) {

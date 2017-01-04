@@ -41,6 +41,7 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -170,12 +171,28 @@ public class Main extends Application {
 		RadioMenuItem localItem = new RadioMenuItem("本地文件夹");
 		RadioMenuItem relativeItem = new RadioMenuItem("文件所在目录");
 		RadioMenuItem absoluteItem = new RadioMenuItem("自定义目录");
-		localItem.setSelected(true);
+
+		switch (Settings.get().getOutputModel()) {
+		case Local:
+			localItem.setSelected(true);
+			break;
+		case Relative:
+			relativeItem.setSelected(true);
+			break;
+		case Absolute:
+			absoluteItem.setSelected(true);
+			break;
+		}
 
 		ToggleGroup outputGroup = new ToggleGroup();
 		outputGroup.getToggles().addAll(localItem, relativeItem, absoluteItem);
-
 		outputMenu.getItems().addAll(localItem, relativeItem, absoluteItem);
+
+		localItem.setOnAction(e -> Settings.get().setOutputModel(OutputModel.Local));
+		relativeItem.setOnAction(e -> Settings.get().setOutputModel(OutputModel.Relative));
+		absoluteItem.setOnAction(e -> {
+			Settings.get().setOutputModel(OutputModel.Absolute);
+		});
 
 		// 分辨率选项
 		Menu resolutionMenu = new Menu("分辨率");
@@ -185,12 +202,40 @@ public class Main extends Application {
 		RadioMenuItem xhdpiItem = new RadioMenuItem("xhdpi 320");
 		RadioMenuItem xxhdpiItem = new RadioMenuItem("xxhdpi 480");
 		RadioMenuItem customItem = new RadioMenuItem("自定义分辨率");
-		mdpiItem.setSelected(true);
 
+		switch (Settings.get().getResolution()) {
+		case ldpi:
+			ldpiItem.setSelected(true);
+			break;
+		case mdpi:
+			mdpiItem.setSelected(true);
+			break;
+		case hdpi:
+			hdpiItem.setSelected(true);
+			break;
+		case xhdpi:
+			xhdpiItem.setSelected(true);
+			break;
+		case xxhdpi:
+			xxhdpiItem.setSelected(true);
+			break;
+		case custom:
+			customItem.setSelected(true);
+			break;
+		}
+		
 		ToggleGroup dpiGroup = new ToggleGroup();
 		dpiGroup.getToggles().addAll(ldpiItem, mdpiItem, hdpiItem, xhdpiItem, xxhdpiItem, customItem);
-
 		resolutionMenu.getItems().addAll(ldpiItem, mdpiItem, hdpiItem, xhdpiItem, xxhdpiItem, customItem);
+
+		ldpiItem.setOnAction(e -> Settings.get().setResolution(DPI.ldpi));
+		mdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.mdpi));
+		hdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.hdpi));
+		xhdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.xhdpi));
+		xxhdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.xxhdpi));
+		customItem.setOnAction(e -> {
+			Settings.get().setResolution(DPI.custom);
+		});
 
 		optionsMenu.getItems().addAll(outputMenu, resolutionMenu);
 
@@ -377,7 +422,33 @@ public class Main extends Application {
 		tableView.getColumns().add(stateColumn);
 		tableView.getColumns().add(openColumn);
 
-		// 支持拖拽
+		/**
+		 * 支持快捷键
+		 */
+		tableView.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				PdfFile pdfFile = tableView.getSelectionModel().getSelectedItem();
+				switch (event.getCode()) {
+				case SPACE: {
+					if (pdfFile != null)
+						pdfFile.setSelect(!pdfFile.getSelect());
+					break;
+				}
+				case DELETE: {
+					pdfList.delete(pdfFile);
+					break;
+				}
+				default:
+					// do nothing
+					return;
+				}
+			}
+		});
+
+		/**
+		 * 支持拖拽
+		 */
 		// 拖入文件
 		tableView.setOnDragOver(new EventHandler<DragEvent>() { // node添加拖入文件事件
 			public void handle(DragEvent event) {
@@ -389,7 +460,6 @@ public class Main extends Application {
 		});
 		// 释放文件
 		tableView.setOnDragDropped(new EventHandler<DragEvent>() {
-
 			@Override
 			public void handle(DragEvent event) {
 				Dragboard dragboard = event.getDragboard();

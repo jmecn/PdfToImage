@@ -32,7 +32,7 @@ public class ProcessTask extends Task<Void> {
 	public final static String DATE_FORMAT = "yyyyMMddHHmmss";
 	public final static SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
 	// FORMAT: output/{fileName}_{yyyyMMddHHmmss}/001.png
-	public final static String IMAGE_NAME = "%s" + File.separatorChar + "%04d.png";
+	public final static String IMAGE_NAME = "%s" + File.separatorChar + "%d.png";
 	
 	private PdfFile pdf;
 

@@ -136,7 +136,7 @@ public class PdfList extends LinkedList<PdfFile> {
 					
 				} catch (Exception e) {
 					e.printStackTrace();
-					logger.error("ERROR: {}", e.getMessage(), e);
+					logger.error("ERROR adding new file: {} {}", file, e.getMessage(), e);
 				}
 			}
 		}
@@ -183,6 +183,13 @@ public class PdfList extends LinkedList<PdfFile> {
 			if (select != get(i).getSelect()) {
 				get(i).setSelect(select);
 			}
+		}
+	}
+
+	public void delete(PdfFile pdfFile) {
+		if (contains(pdfFile)) {
+			remove(pdfFile);
+			data.remove(pdfFile);
 		}
 	}
 }
