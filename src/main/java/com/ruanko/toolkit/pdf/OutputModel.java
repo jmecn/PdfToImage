@@ -13,9 +13,5 @@ public enum OutputModel {
 	/**
 	 * 输出到pdf文件所在文件夹中。
 	 */
-	Relative,
-	/**
-	 * 用户指定文件夹
-	 */
-	Absolute;
+	Relative;
 }

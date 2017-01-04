@@ -5,7 +5,10 @@ import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -15,8 +18,12 @@ import org.ghost4j.renderer.SimpleRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.SimpleBookmark;
+
 import static com.ruanko.toolkit.pdf.State.Process;
 import static com.ruanko.toolkit.pdf.State.Done;
+import static com.ruanko.toolkit.pdf.State.Ready;
 
 import javafx.concurrent.Task;
 
@@ -41,10 +48,29 @@ public class ProcessTask extends Task<Void> {
 	}
 	
 	@Override
+	protected void succeeded() {
+		super.succeeded();
+	}
+
+	@Override
 	protected Void call() throws Exception {
 		try {
 			pdf.setState(Process);
-			updateMessage("Process..");
+			updateMessage("开始");
+			
+			/**
+			 * 生成书签
+			 */
+			PdfReader reader = new PdfReader(pdf.getFile().getAbsolutePath());
+			List<HashMap<String, Object>> list = SimpleBookmark.getBookmark(reader);
+
+			if (list == null) {
+				logger.info("无书签");
+			} else {
+				for (Iterator<HashMap<String, Object>> i = list.iterator(); i.hasNext();) {
+					showBookmark(i.next(), 0);
+				}
+			}
 			
 			logger.debug("Begin converting PDF: {} at {}", pdf.getName(), format.format(new Date()));
 
@@ -87,11 +113,15 @@ public class ProcessTask extends Task<Void> {
 
 			logger.debug("End PDF conversion at " + new Date());
 			
-			updateMessage("Done.");
+			updateMessage("完成");
 			pdf.setState(Done);
+			
 		} catch (Exception e) {
 			logger.error("ERROR: {}", e.getMessage(), e);
 		}
+		
+		updateMessage("就绪");
+		pdf.setState(Ready);
 		return null;
 	}
 
@@ -112,10 +142,7 @@ public class ProcessTask extends Task<Void> {
 		switch (model) {
 		case Relative: {
 			String parent = pdf.getFile().getParent();
-			return parent + File.separator + "output" + File.separator + dirname;
-		}
-		case Absolute: {
-			return Settings.get().getOutput();
+			return parent + File.separator + dirname;
 		}
 		case Local:
 		default:
@@ -143,4 +170,44 @@ public class ProcessTask extends Task<Void> {
 		}
 	}
 
+	String[] spaces = {"", "  ", "    ", "      ", "        "};
+	/**
+	 * 获取标题
+	 * @param bookmark
+	 * @param depth
+	 */
+	private void showBookmark(HashMap<String, Object> bookmark, int depth) {
+		// 获取标题
+		if ("GoTo".equals(bookmark.get("Action"))) {
+			String title = (String) bookmark.get("Title");
+
+			// 获取页码
+			int pageNum = -1;
+			String page = (String) bookmark.get("Page");
+			if (page != null) {
+
+				page = page.trim();
+
+				int idx = page.indexOf(' ');
+
+
+				if (idx < 0) {
+					pageNum = Integer.parseInt(page);
+				} else {
+					pageNum = Integer.parseInt(page.substring(0, idx));
+				}
+			}
+			
+			logger.info("{}{} ------- {}", spaces[depth], title, pageNum);
+		}
+		
+		@SuppressWarnings("unchecked")
+		ArrayList<HashMap<String, Object>> kids = (ArrayList<HashMap<String, Object>>) bookmark.get("Kids");
+		if (kids == null)
+			return;
+		for (Iterator<HashMap<String, Object>> i = kids.iterator(); i.hasNext();) {
+
+			showBookmark(i.next(), depth+1);
+		}
+	}
 }

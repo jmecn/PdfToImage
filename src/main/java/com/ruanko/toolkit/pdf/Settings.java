@@ -12,9 +12,7 @@ public class Settings {
 	final static String REGISTRY_KEY = "/com/ruanko/toolkit/pdf";
 	
 	final static String RESOLUTION = "Resolution";
-	final static String _DPI = "DPI";
 	final static String OUTPUT_MODEL = "OutputModel";
-	final static String OUTPUT_FOLDER = "OutputFolder";
 	final static String LAST_PATH = "lastPath";
 
 	final static Settings settings = new Settings();
@@ -26,11 +24,9 @@ public class Settings {
 
 	// 输出文件夹
 	private OutputModel model;
-	private String output = "./output";
 
 	// 分辨率
 	private DPI resolution;
-	private int dpi;
 
 	private Settings() {
 		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
@@ -43,14 +39,6 @@ public class Settings {
 		}
 		resolution = DPI.valueOf(res);
 		
-		// default DPI
-		int tmp = pref.getInt(_DPI, -1);
-		if (tmp == -1) {
-			tmp = DPI.ldpi.dpi;
-			pref.putInt(_DPI, tmp);
-		}
-		dpi = tmp;
-		
 		// default OutputModel
 		String outputModel = pref.get(OUTPUT_MODEL, "");
 		if (outputModel.equals("")) {
@@ -58,14 +46,6 @@ public class Settings {
 			pref.put(OUTPUT_MODEL, outputModel);
 		}
 		model = OutputModel.valueOf(outputModel);
-		
-		// default OutputFolder
-		output = pref.get(OUTPUT_FOLDER, "");
-		if (output.equals("")) {
-			output = "./output";
-			pref.put(OUTPUT_FOLDER, output);
-		}
-		
 	}
 
 	public static Settings get() {
@@ -94,20 +74,8 @@ public class Settings {
 		return resolution;
 	}
 	
-	public void setDpi(int dpi) {
-		setResolution(DPI.custom);
-		
-		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
-		pref.putInt(_DPI, dpi);
-		this.dpi = dpi;
-	}
-	
 	public int getDpi() {
-		if (resolution != DPI.custom) {
-			return resolution.dpi;
-		} else {
-			return dpi;
-		}
+		return resolution.dpi;
 	}
 
 	public void setOutputModel(OutputModel model) {
@@ -118,17 +86,5 @@ public class Settings {
 	
 	public OutputModel getOutputModel() {
 		return model;
-	}
-
-	public void setOutput(String output) {
-		setOutputModel(OutputModel.Absolute);
-		
-		Preferences pref = Preferences.userRoot().node(REGISTRY_KEY);
-		pref.put(OUTPUT_FOLDER, output);
-		this.output = output;
-	}
-
-	public String getOutput() {
-		return output;
 	}
 }

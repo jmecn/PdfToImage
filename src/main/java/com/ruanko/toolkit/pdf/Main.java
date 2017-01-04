@@ -12,35 +12,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.Separator;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ProgressBarTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
@@ -91,16 +83,6 @@ public class Main extends Application {
 
 		pdfList = new PdfList();
 
-		// 主菜单
-		Menu fileMenu = getFileMenu();
-		Menu optionsMenu = getOptionsMenu();
-		Menu helpMenu = getHelpMenu();
-
-		MenuBar menuBar = new MenuBar();
-		menuBar.setUseSystemMenuBar(true);
-		menuBar.setStyle("-fx-font-size: 12;");
-		menuBar.getMenus().addAll(fileMenu, optionsMenu, helpMenu);
-
 		// 工具栏
 		ToolBar toolBar = getToolBar();
 
@@ -117,12 +99,9 @@ public class Main extends Application {
 		getContextMenu();
 
 		BorderPane root = new BorderPane();
-		BorderPane center = new BorderPane();
-		root.setTop(menuBar);
-		root.setCenter(center);
+		root.setTop(toolBar);
+		root.setCenter(tableView);
 		root.setBottom(box);
-		center.setTop(toolBar);
-		center.setCenter(tableView);
 
 		Scene scene = new Scene(root, 1024, 768);
 		stage.setScene(scene);
@@ -133,127 +112,6 @@ public class Main extends Application {
 	}
 
 	/**
-	 * 文件菜单
-	 * 
-	 * @return
-	 */
-	private Menu getFileMenu() {
-		Menu fileMenu = new Menu("文件");
-		// fileMenu.setGraphic(new ImageView(new Image("image.jpg")));
-
-		MenuItem openItem = new MenuItem("打开");
-		MenuItem pngItem = new MenuItem("PNG");
-		MenuItem htmItem = new MenuItem("HTML");
-		MenuItem exitItem = new MenuItem("退出");
-		Menu saveAsSubMenu = new Menu("生成为");
-		saveAsSubMenu.getItems().addAll(pngItem, htmItem);
-		fileMenu.getItems().addAll(openItem, saveAsSubMenu, new SeparatorMenuItem(), exitItem);
-
-		openItem.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
-		exitItem.setAccelerator(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN));
-
-		openItem.setOnAction(e -> addPdfFile());
-		exitItem.setOnAction(e -> Platform.exit());
-
-		return fileMenu;
-	}
-
-	/**
-	 * 选项菜单
-	 * 
-	 * @return
-	 */
-	private Menu getOptionsMenu() {
-		Menu optionsMenu = new Menu("选项");
-
-		// 输出文件夹选项
-		Menu outputMenu = new Menu("输出到");
-		RadioMenuItem localItem = new RadioMenuItem("本地文件夹");
-		RadioMenuItem relativeItem = new RadioMenuItem("文件所在目录");
-		RadioMenuItem absoluteItem = new RadioMenuItem("自定义目录");
-
-		switch (Settings.get().getOutputModel()) {
-		case Local:
-			localItem.setSelected(true);
-			break;
-		case Relative:
-			relativeItem.setSelected(true);
-			break;
-		case Absolute:
-			absoluteItem.setSelected(true);
-			break;
-		}
-
-		ToggleGroup outputGroup = new ToggleGroup();
-		outputGroup.getToggles().addAll(localItem, relativeItem, absoluteItem);
-		outputMenu.getItems().addAll(localItem, relativeItem, absoluteItem);
-
-		localItem.setOnAction(e -> Settings.get().setOutputModel(OutputModel.Local));
-		relativeItem.setOnAction(e -> Settings.get().setOutputModel(OutputModel.Relative));
-		absoluteItem.setOnAction(e -> {
-			Settings.get().setOutputModel(OutputModel.Absolute);
-		});
-
-		// 分辨率选项
-		Menu resolutionMenu = new Menu("分辨率");
-		RadioMenuItem ldpiItem = new RadioMenuItem("ldpi 120");
-		RadioMenuItem mdpiItem = new RadioMenuItem("mdpi 160");
-		RadioMenuItem hdpiItem = new RadioMenuItem("hdpi 240");
-		RadioMenuItem xhdpiItem = new RadioMenuItem("xhdpi 320");
-		RadioMenuItem xxhdpiItem = new RadioMenuItem("xxhdpi 480");
-		RadioMenuItem customItem = new RadioMenuItem("自定义分辨率");
-
-		switch (Settings.get().getResolution()) {
-		case ldpi:
-			ldpiItem.setSelected(true);
-			break;
-		case mdpi:
-			mdpiItem.setSelected(true);
-			break;
-		case hdpi:
-			hdpiItem.setSelected(true);
-			break;
-		case xhdpi:
-			xhdpiItem.setSelected(true);
-			break;
-		case xxhdpi:
-			xxhdpiItem.setSelected(true);
-			break;
-		case custom:
-			customItem.setSelected(true);
-			break;
-		}
-		
-		ToggleGroup dpiGroup = new ToggleGroup();
-		dpiGroup.getToggles().addAll(ldpiItem, mdpiItem, hdpiItem, xhdpiItem, xxhdpiItem, customItem);
-		resolutionMenu.getItems().addAll(ldpiItem, mdpiItem, hdpiItem, xhdpiItem, xxhdpiItem, customItem);
-
-		ldpiItem.setOnAction(e -> Settings.get().setResolution(DPI.ldpi));
-		mdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.mdpi));
-		hdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.hdpi));
-		xhdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.xhdpi));
-		xxhdpiItem.setOnAction(e -> Settings.get().setResolution(DPI.xxhdpi));
-		customItem.setOnAction(e -> {
-			Settings.get().setResolution(DPI.custom);
-		});
-
-		optionsMenu.getItems().addAll(outputMenu, resolutionMenu);
-
-		return optionsMenu;
-	}
-
-	/**
-	 * 帮助菜单
-	 * 
-	 * @return
-	 */
-	private Menu getHelpMenu() {
-		Menu helpMenu = new Menu("帮助");
-
-		return helpMenu;
-	}
-
-	/**
 	 * 工具栏
 	 * 
 	 * @return
@@ -261,8 +119,7 @@ public class Main extends Application {
 	private ToolBar getToolBar() {
 		Button selectAll = new Button("全选");
 		Button open = new Button("添加PDF文件");
-		Button export = new Button("转换PNG");
-		Button exitBtn = new Button("Exit");
+		Button export = new Button("转换");
 		selectAll.setOnAction(e -> {
 			if (pdfList.allSelected()) {
 				pdfList.selectedAll(false);
@@ -271,19 +128,52 @@ public class Main extends Application {
 			}
 		});
 		open.setOnAction(e -> addPdfFile());
-		export.setOnAction(e -> {
-			Platform.runLater(new Runnable() {
-				@Override
-				public void run() {
-					exportAll();
-				}
-			});
+
+		ComboBox<String> resolution = new ComboBox<String>();
+		resolution.getItems().addAll("ldpi 120", "mdpi 160", "hdpi 240", "xhdpi 320", "xxhdpi 480");
+		switch (Settings.get().getResolution()) {
+		case ldpi:
+			resolution.getSelectionModel().select(0);
+			break;
+		case mdpi:
+			resolution.getSelectionModel().select(1);
+			break;
+		case hdpi:
+			resolution.getSelectionModel().select(2);
+			break;
+		case xhdpi:
+			resolution.getSelectionModel().select(3);
+			break;
+		case xxhdpi:
+			resolution.getSelectionModel().select(4);
+			break;
+		}
+		resolution.setOnAction(e -> {
+			int index = resolution.getSelectionModel().getSelectedIndex();
+			Settings.get().setResolution(DPI.values()[index]);
 		});
-		exitBtn.setOnAction(e -> Platform.exit());
+
+		ComboBox<String> output = new ComboBox<String>();
+		output.getItems().addAll("本地文件夹", "PDF文件所在位置");
+		switch (Settings.get().getOutputModel()) {
+		case Local:
+			output.getSelectionModel().select(0);
+			break;
+		case Relative:
+			output.getSelectionModel().select(1);
+			break;
+		}
+		output.setOnAction(e -> {
+			int index = output.getSelectionModel().getSelectedIndex();
+			Settings.get().setOutputModel(OutputModel.values()[index]);
+		});
+
+		export.setOnAction(e -> exportAll());
 
 		ToolBar toolBar = new ToolBar();
 		toolBar.setOrientation(Orientation.HORIZONTAL);
-		toolBar.getItems().addAll(selectAll, open, export, new Separator(), exitBtn);
+		toolBar.getItems().addAll(selectAll, new Separator(), open, new Separator(), new Label("分辨率:"),
+				resolution, new Separator(), new Label("输出到:"), output, new Separator(), export);
 		return toolBar;
 	}
 
@@ -362,7 +252,7 @@ public class Main extends Application {
 	 * @return
 	 */
 	private TableView<PdfFile> getTableView() {
-		Button btn = new Button("Add pdf files");
+		Button btn = new Button("添加文件");
 		btn.setOnAction(e -> addPdfFile());
 
 		TableView<PdfFile> tableView = new TableView<PdfFile>();
@@ -498,13 +388,9 @@ public class Main extends Application {
 	 * 启动一个装载文件任务
 	 */
 	private void startLoadingTask(List<File> files) {
-
 		LoadingTask loading = new LoadingTask(files);
-
 		status.textProperty().bind(loading.messageProperty());
-
 		progressBar.progressProperty().bind(loading.progressProperty());
-
 		executor.submit(loading);
 	}
 
