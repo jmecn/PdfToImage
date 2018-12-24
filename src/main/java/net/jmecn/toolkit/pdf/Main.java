@@ -1,4 +1,4 @@
-package com.ruanko.toolkit.pdf;
+package net.jmecn.toolkit.pdf;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -50,7 +50,7 @@ public class Main extends Application {
 	private static Logger logger = LoggerFactory.getLogger(Main.class);
 
 	// Resource bundle for i18n.
-	private static ResourceBundle resource = ResourceBundle.getBundle("com.ruanko.toolkit.pdf.UI");
+	private static ResourceBundle resource = ResourceBundle.getBundle("net.jmecn.toolkit.pdf.UI");
 
 	private ExecutorService executor = null;
 
@@ -185,12 +185,12 @@ public class Main extends Application {
 		status = new Label("就绪");
 		progressBar = new ProgressBar(0);
 		progressBar.setVisible(false);
-		Hyperlink hyperlink = new Hyperlink("http://www.ruanko.com");
+		Hyperlink hyperlink = new Hyperlink("http://www.jmecn.net");
 		hyperlink.setOnAction(e -> {
 			try {
-				Desktop.getDesktop().browse(new URI("http://www.ruanko.com"));
+				Desktop.getDesktop().browse(new URI("http://www.jmecn.net"));
 			} catch (Exception ex) {
-				logger.error("Error when open http://www.ruanko.com : {}", ex.getMessage(), ex);
+				logger.error("Error when open http://www.jmecn.net : {}", ex.getMessage(), ex);
 			}
 		});
 
